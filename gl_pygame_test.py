@@ -3,6 +3,8 @@ from pygame.locals import *
 from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import time
+import sys
+import select
 
 # Initialize Pygame and create a window
 pygame.init()
@@ -19,6 +21,9 @@ fragment_shader = load_shader("shader.frag", GL_FRAGMENT_SHADER)
 
 # Create the shader program
 shader_program = compileProgram(fragment_shader)
+
+# Locate the uniform variable 'uIntesity' in the shader
+uIntensity_location = glGetUniformLocation(shader_program, 'uIntensity')
 
 # Function to render a full-screen quad
 def render_quad():
@@ -51,6 +56,17 @@ while running:
     # Swap the buffer
     pygame.display.flip()
     pygame.time.wait(10)
+    
+    # Now, we'll check for command line input without blocking
+    if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+        line = sys.stdin.readline().strip()
+        if line:
+            try:
+                intensity_value = float(line)
+                glUniform1f(uIntensity_location, intensity_value)
+                print(f"Intensity updated to: {intensity_value}")
+            except ValueError:
+                print("Please enter a valid float value.")
 
 # Cleanup
 glDeleteProgram(shader_program)
