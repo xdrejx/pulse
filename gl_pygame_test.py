@@ -4,11 +4,25 @@ from OpenGL.GL import *
 from OpenGL.GL.shaders import compileProgram, compileShader
 import time
 import sys
-import select
+import numpy as np
+import sounddevice as sd
+
+# Global variable to hold the volume level
+current_volume = 0
+
+# Resolution of the screen
+width = 800
+height = 600
+
+def audio_callback(indata, frames, time, status):
+    global current_volume
+    # Compute RMS volume
+    volume_rms = np.linalg.norm(indata)
+    current_volume = volume_rms
 
 # Initialize Pygame and create a window
 pygame.init()
-pygame.display.set_mode((800, 600), DOUBLEBUF|OPENGL)
+pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
 
 # Function to load and compile a shader
 def load_shader(shader_file, shader_type):
@@ -22,17 +36,21 @@ fragment_shader = load_shader("shader.frag", GL_FRAGMENT_SHADER)
 # Create the shader program
 shader_program = compileProgram(fragment_shader)
 
-# Locate the uniform variable 'uIntesity' in the shader
+# Locate the uniform variable 'uIntensity' in the shader
 uIntensity_location = glGetUniformLocation(shader_program, 'uIntensity')
 
 # Function to render a full-screen quad
 def render_quad():
     glBegin(GL_QUADS)
     glVertex2f(-1, -1)
-    glVertex2f( 1, -1)
-    glVertex2f( 1,  1)
-    glVertex2f(-1,  1)
+    glVertex2f(1, -1)
+    glVertex2f(1, 1)
+    glVertex2f(-1, 1)
     glEnd()
+
+# Start an input stream with the callback function
+stream = sd.InputStream(device=3, channels=1, callback=audio_callback)
+stream.start()
 
 # Main loop
 running = True
@@ -45,29 +63,24 @@ while running:
     # Set the uniforms
     glUseProgram(shader_program)
     glUniform1f(glGetUniformLocation(shader_program, "iTime"), time.time() - start_time)
-    glUniform2f(glGetUniformLocation(shader_program, "iResolution"), 800, 600)
+    glUniform2f(glGetUniformLocation(shader_program, "iResolution"), width, height)
 
     # Clear the screen
     glClear(GL_COLOR_BUFFER_BIT)
 
     # Render the quad
     render_quad()
+    
+    # Set the intensity of the shader
+    # current_volume is updated by the audio_callback function
+    glUniform1f(uIntensity_location, current_volume)
 
     # Swap the buffer
     pygame.display.flip()
     pygame.time.wait(10)
-    
-    # Now, we'll check for command line input without blocking
-    if select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
-        line = sys.stdin.readline().strip()
-        if line:
-            try:
-                intensity_value = float(line)
-                glUniform1f(uIntensity_location, intensity_value)
-                print(f"Intensity updated to: {intensity_value}")
-            except ValueError:
-                print("Please enter a valid float value.")
 
 # Cleanup
+stream.stop()
+stream.close()
 glDeleteProgram(shader_program)
 pygame.quit()
