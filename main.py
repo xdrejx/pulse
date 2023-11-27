@@ -6,50 +6,34 @@ import time
 import numpy as np
 import sounddevice as sd
 
-# Global variable to hold the volume level
-current_volume = 0
+from audio import *
+from shaders import *
+from config import *
 
-# Resolution of the screen
-width = 800
-height = 600
-
-def audio_callback(indata, frames, time, status):
-    global current_volume
-    # Compute RMS volume
-    volume_rms = np.linalg.norm(indata)
-    current_volume = volume_rms
 
 # Initialize Pygame and create a window
 pygame.init()
 pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
 
-# Function to load and compile a shader
-def load_shader(shader_file, shader_type):
-    with open(shader_file) as f:
-        shader_source = f.read()
-    return compileShader(shader_source, shader_type)
-
 # Load and compile the fragment shader
-fragment_shader = load_shader("shader.frag", GL_FRAGMENT_SHADER)
+fragment_shader = load_shader("shadbar.frag", GL_FRAGMENT_SHADER)
 
 # Create the shader program
 shader_program = compileProgram(fragment_shader)
 
 # Locate the uniform variable 'uIntensity' in the shader
-uIntensity_location = glGetUniformLocation(shader_program, 'uIntensity')
-
-# Function to render a full-screen quad
-def render_quad():
-    glBegin(GL_QUADS)
-    glVertex2f(-1, -1)
-    glVertex2f(1, -1)
-    glVertex2f(1, 1)
-    glVertex2f(-1, 1)
-    glEnd()
+bar1 = glGetUniformLocation(shader_program, 'bar1')
+bar2 = glGetUniformLocation(shader_program, 'bar2')
+bar3 = glGetUniformLocation(shader_program, 'bar3')
+bar4 = glGetUniformLocation(shader_program, 'bar4')
+bar5 = glGetUniformLocation(shader_program, 'bar5')
 
 # Start an input stream with the callback function
-stream = sd.InputStream(device=3, channels=1, callback=audio_callback)
+stream = sd.InputStream(device=5, channels=1, callback=audio_callback)
 stream.start()
+
+# Set the number of frequency bands
+set_number_of_bands(5)
 
 # Main loop
 running = True
@@ -59,7 +43,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Set the uniforms
+    # Set the uniforms for your existing shader
     glUseProgram(shader_program)
     glUniform1f(glGetUniformLocation(shader_program, "iTime"), time.time() - start_time)
     glUniform2f(glGetUniformLocation(shader_program, "iResolution"), width, height)
@@ -70,9 +54,19 @@ while running:
     # Render the quad
     render_quad()
     
-    # Set the intensity of the shader
-    # current_volume is updated by the audio_callback function
-    glUniform1f(uIntensity_location, current_volume)
+    band_volumes = get_frequency_band_volumes()
+    
+    # set bars to band volumes
+    glUniform1f(bar1, band_volumes[0])
+    glUniform1f(bar2, band_volumes[1])
+    glUniform1f(bar3, band_volumes[2])
+    glUniform1f(bar4, band_volumes[3])
+    glUniform1f(bar5, band_volumes[4])
+    
+    print(band_volumes)
+
+    # Re-enable the shader for the rest of the rendering
+    glUseProgram(shader_program)
 
     # Swap the buffer
     pygame.display.flip()

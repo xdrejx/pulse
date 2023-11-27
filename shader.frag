@@ -2,7 +2,11 @@
 
 uniform float iTime;
 uniform vec2 iResolution;
-uniform float uIntensity;
+uniform float bar1;
+uniform float bar2;
+uniform float bar3;
+uniform float bar4;
+uniform float bar5;
 
 
 vec3 palette(float t) {
@@ -27,7 +31,7 @@ void main() {
 
         vec3 col = palette(length(uv0) + i * 0.4 + iTime * 0.4);
 
-        d = sin(d * 8.0 + iTime) / ((18.0 * uIntensity ) + 2.0);
+        d = sin(d * 8.0 + iTime) / ((16.0 * bar1 ) + 1.0);
         d = abs(d);
 
         d = pow(0.01 / d, 1.2);
