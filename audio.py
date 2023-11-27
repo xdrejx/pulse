@@ -1,5 +1,6 @@
 import numpy as np
 import sounddevice as sd
+import pyaudio
 
 # Number of frequency bands
 num_bands = 10
@@ -58,3 +59,19 @@ def audio_callback(indata, frames, time, status):
 def get_frequency_band_volumes():
     # Return the normalized volumes
     return frequency_bands_volumes
+
+# function that lists all sound devices and finds the index of pulseaudio
+def find_pulseaudio():
+
+    pa = pyaudio.PyAudio()
+
+    # List all audio devices
+    for i in range(pa.get_device_count()):
+        dev_info = pa.get_device_info_by_index(i)
+        if dev_info['name'] == "pulse":
+            return dev_info['index']
+
+    # Close PyAudio
+    pa.terminate()
+
+    return -1

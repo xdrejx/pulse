@@ -28,8 +28,12 @@ bar3 = glGetUniformLocation(shader_program, 'bar3')
 bar4 = glGetUniformLocation(shader_program, 'bar4')
 bar5 = glGetUniformLocation(shader_program, 'bar5')
 
+# Find index of pulseaudio device
+pa_index = find_pulseaudio()
+print(pa_index)
+
 # Start an input stream with the callback function
-stream = sd.InputStream(device=5, channels=1, callback=audio_callback)
+stream = sd.InputStream(device=pa_index, channels=1, callback=audio_callback)
 stream.start()
 
 # Set the number of frequency bands
