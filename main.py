@@ -10,7 +10,6 @@ from audio import *
 from shaders import *
 from config import *
 
-
 # Initialize Pygame and create a window
 pygame.init()
 pygame.display.set_mode((width, height), DOUBLEBUF | OPENGL)
@@ -21,12 +20,8 @@ fragment_shader = load_shader("shadbar.frag", GL_FRAGMENT_SHADER)
 # Create the shader program
 shader_program = compileProgram(fragment_shader)
 
-# Locate the uniform variable 'uIntensity' in the shader
-bar1 = glGetUniformLocation(shader_program, 'bar1')
-bar2 = glGetUniformLocation(shader_program, 'bar2')
-bar3 = glGetUniformLocation(shader_program, 'bar3')
-bar4 = glGetUniformLocation(shader_program, 'bar4')
-bar5 = glGetUniformLocation(shader_program, 'bar5')
+# Locate the uniform variable 'barHeights' in the shader
+loc_barHeights = glGetUniformLocation(shader_program, "barHeights")
 
 # Find index of pulseaudio device
 pa_index = find_pulseaudio()
@@ -59,18 +54,14 @@ while running:
     render_quad()
     
     band_volumes = get_frequency_band_volumes()
-    
-    # set bars to band volumes
-    glUniform1f(bar1, band_volumes[0])
-    glUniform1f(bar2, band_volumes[1])
-    glUniform1f(bar3, band_volumes[2])
-    glUniform1f(bar4, band_volumes[3])
-    glUniform1f(bar5, band_volumes[4])
-    
     print(band_volumes)
 
-    # Re-enable the shader for the rest of the rendering
-    glUseProgram(shader_program)
+    # Set bars to band volumes
+    if loc_barHeights != -1:
+        glUniform1fv(loc_barHeights, 5, band_volumes)
+    else:
+        print("Uniform 'barHeights' not found in the shader program")
+
 
     # Swap the buffer
     pygame.display.flip()
